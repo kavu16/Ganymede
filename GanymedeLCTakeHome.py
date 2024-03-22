@@ -49,19 +49,23 @@ class ChromatogramRun:
     chromData: ChromatogramData
     sigData: SignalData
 
-    rawChromData: list[list[float]] = []
-    peakData: list[list[float]] = []
-    peakVolumes: list[float] = []
+    rawChromData: list[list[float]]
+    peakData: list[list[float]]
+    peakVolumes: list[float]
 
     def __init__(self, file_name: str):
         with open(file_name) as file:
             data = file.read().splitlines()
 
+        self.rawChromData = []
+        self.peakData = []
+        self.peakVolumes = []
+
         inj_data, chrom_data, sig_param = data[3:18], data[19:37], data[38:40]
         
         raw_data = data[43:]
 
-        inj_data = InjectionData(
+        self.inj_data = InjectionData(
             inj_data[1].split("Data Vault")[1].strip(),
             inj_data[2].split("Injection")[1].strip(),
             int(inj_data[3].split("Injection Number")[1].strip()),
@@ -78,7 +82,7 @@ class ChromatogramRun:
             float(inj_data[14].split("Weight")[1].strip())
         )
 
-        chrom_data = ChromatogramData(
+        self.chrom_data = ChromatogramData(
             float(chrom_data[1].split("Time Min.")[1].strip().split('\t')[1]),
             float(chrom_data[2].split("Time Max.")[1].strip().split('\t')[1]),
             int(chrom_data[3].split("Data Points")[1].strip()),
@@ -98,19 +102,14 @@ class ChromatogramRun:
             float(chrom_data[17].split("Average Step")[1].strip().split()[1])
         )
 
-        sig_param = SignalData(
+        self.sigData = SignalData(
             sig_param[1].split("Signal Info")[1].strip()
         )
 
-        chrom_run = ChromatogramRun
-        chrom_run.injData = inj_data
-        chrom_run.chromData = chrom_data
-        chrom_run.sigData = sig_param
-
-        chrom_run.rawChromData.append([0.0, 0.0, 0.0])
+        self.rawChromData.append([0.0, 0.0, 0.0])
         for tsv in raw_data[1:]:
             time, step, val = tsv.split()
-            chrom_run.rawChromData.append([float(time), float(step), float(val)])
+            self.rawChromData.append([float(time), float(step), float(val)])
 
         return
     
@@ -125,8 +124,6 @@ class ChromatogramRun:
         filtered_chrom = np.array(self.rawChromData)
         running_avg = np.mean(filtered_chrom[0:lag, 2:])
         running_std = np.std(filtered_chrom[0:lag, 2:])
-        pcount = 0
-        ncount = 0
 
         i = lag
         while i < len(self.rawChromData):
@@ -185,10 +182,15 @@ class ChromatogramRun:
 
 
 if __name__ == '__main__':
-    file_name = "data/IgG Vtag 1_ACQUITY FLR ChA.txt"
-    chrom_run = ChromatogramRun(file_name)
+    file_names = [
+        "data/IgG Vtag 1_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 2_ACQUITY FLR ChA.txt"
+    ]
 
-    chrom_run.find_peaks(4, 0, 100)
-    print(chrom_run.elutionVolume())
+    for file in file_names:
+        chrom_run = ChromatogramRun(file)
 
-    chrom_run.visualize()
+        chrom_run.find_peaks(4, 0, 100)
+        print(chrom_run.elutionVolume())
+
+        chrom_run.visualize()
