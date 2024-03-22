@@ -129,26 +129,29 @@ class ChromatogramRun:
         ncount = 0
 
         i = lag
-        while i < len(filtered_chrom):
-            if abs(self.rawChromData[i][2] - running_avg) <= threshold * running_std:
-                running_avg = np.mean(filtered_chrom[(i-lag+1):i+1, 2:])
-                running_std = np.std(filtered_chrom[(i-lag+1):i+1, 2:])
-                i += 1
-                filtered_chrom[i][2] = self.rawChromData[i][2]
-            else:
+        while i < len(self.rawChromData):
+            if abs(self.rawChromData[i][2] - running_avg) > threshold * running_std:
                 # Using index to store left/right threshold (can also store time value if needed)
-                start = i
+                start_index = i
                 peak_max = self.rawChromData[i][2]
+                max_index = self.rawChromData[i][0]
                 # Loop to find left and right threshold of the peak
                 while i < len(filtered_chrom) and abs(self.rawChromData[i][2] - running_avg) > threshold * running_std:
+                    if self.rawChromData[i][2] > peak_max:
+                        max_index = self.rawChromData[i][0]
                     peak_max = max(peak_max, self.rawChromData[i][2])
                     filtered_chrom[i][2] = influence * self.rawChromData[i][2] + (1 - influence) * filtered_chrom[i-1][2]
                     running_avg = np.mean(filtered_chrom[(i-lag+1):i+1, 2:])
                     running_std = np.std(filtered_chrom[(i-lag+1):i+1, 2:])
                     i += 1
 
-                end = i - 1
-                self.peakData.append([start, end, peak_max])
+                end_index = i - 1
+                self.peakData.append([max_index, start_index, end_index, peak_max])
+            else:
+                running_avg = np.mean(filtered_chrom[(i-lag+1):i+1, 2:])
+                running_std = np.std(filtered_chrom[(i-lag+1):i+1, 2:])
+                filtered_chrom[i][2] = self.rawChromData[i][2]
+                i += 1
         return
         
 
@@ -159,7 +162,7 @@ class ChromatogramRun:
         # if step size varies, other quadrature methods need to be implemented
         
         total = 0
-        for start, end, _ in self.peakData:
+        for _, start, end, _ in self.peakData:
             sum = 0
             for i in range(start, end, 2):
                 a = self.rawChromData[i][2] if i < len(self.rawChromData) else 0
@@ -173,12 +176,19 @@ class ChromatogramRun:
         return total
     
     def visualize(self):
-        pass
+        view = np.array(self.rawChromData)
+        plt.plot(view[:, :1], view[:, 2:])
+        if len(self.peakData) > 0:
+            signal = np.array(self.peakData)
+            plt.scatter(signal[:, :1], signal[:, 3:])
+        plt.show()
 
 
 if __name__ == '__main__':
-    file_name = "IgG Vtag 4_ACQUITY FLR ChA.txt"
+    file_name = "data/IgG Vtag 1_ACQUITY FLR ChA.txt"
     chrom_run = ChromatogramRun(file_name)
 
-    chrom_run.find_peaks(3.75, 0, 100)
+    chrom_run.find_peaks(4, 0, 100)
     print(chrom_run.elutionVolume())
+
+    chrom_run.visualize()
