@@ -27,6 +27,11 @@ The visualize method plots the raw data and peak data if it is present.  This he
 # How to Run
 There is one file to run, GanymedeLCTakeHome.py  
 
+* __ChromatogramRun(file_name)__: initializes chromatogram class; requires filename of the chromatogram data
+* __.find_peaks(self, threshold, influence, lag)__: method to find peaks in the data.  Threshold: number of standard deviations away from mean to detect peak. Influence - influence of new data on rolling average (0-1) (0 for stationary data).  Lag: How far back you look for the rolling average
+* __.elutionVolume(self)__: calculates the total elution volume of the peaks
+* __.visualize(self)__: creates a visual of the raw data and any found peaks
+
 By default, it will cycle through the example data, creating a new ChromatogramRun instance for each loop.  It will then call the methods to find the peaks and peak volumes and then visualize the data.  There is also a loop that is commented out where you can input the files you want to read on the command line and they will be inserted into the loop.  External libraries used include, sys, dataclasses, numpy, and matplotlib
 
 # Limitations
