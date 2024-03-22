@@ -1,4 +1,5 @@
 # Ganymede - Liquid Chromatography 
+import sys
 from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,9 +50,9 @@ class ChromatogramRun:
     chromData: ChromatogramData
     sigData: SignalData
 
-    rawChromData: list[list[float]]
-    peakData: list[list[float]]
-    peakVolumes: list[float]
+    rawChromData: list[list[float]] # [ [time, step, value] ]
+    peakData: list[list[float]] # [ [peak_time, left_threshold, right_threshold, peak_height] ]
+    peakVolumes: list[float] # [ volume ]
 
     def __init__(self, file_name: str):
         with open(file_name) as file:
@@ -116,6 +117,9 @@ class ChromatogramRun:
     def find_peaks(self, threshold, influence, lag):
         # Find peaks using z-score smoothing
         # If current point within *threshold* times the rolling average of the *lag* then we have detected a peak
+
+        self.peakData.clear() #clear previous run
+        self.peakVolumes.clear() #clear previous volume calculations as well
         if len(self.rawChromData) < lag + 2:
             print("Not Enough Data")
             return
@@ -158,6 +162,8 @@ class ChromatogramRun:
         # Assuming constant step size of 0.5 s
         # if step size varies, other quadrature methods need to be implemented
         
+        self.peakVolumes.clear() # clear previous run
+        
         total = 0
         for _, start, end, _ in self.peakData:
             sum = 0
@@ -184,13 +190,22 @@ class ChromatogramRun:
 if __name__ == '__main__':
     file_names = [
         "data/IgG Vtag 1_ACQUITY FLR ChA.txt",
-        "data/IgG Vtag 2_ACQUITY FLR ChA.txt"
+        "data/IgG Vtag 2_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 3_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 4_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 5_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 6_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 7_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 8_ACQUITY FLR ChA.txt",
+        "data/IgG Vtag 9_ACQUITY FLR ChA.txt"
     ]
+    # for file in sys.argv[1:]:
+    #     file_names.append(file)
 
     for file in file_names:
         chrom_run = ChromatogramRun(file)
 
-        chrom_run.find_peaks(4, 0, 100)
+        chrom_run.find_peaks(5, 0, 100)
         print(chrom_run.elutionVolume())
 
         chrom_run.visualize()
